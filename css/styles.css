@@ -329,6 +329,7 @@ li { margin-bottom: .45rem; }
 .form-status.is-visible { display: block; }
 .form-status.is-success { background: var(--green-50); border-color: #a9e2c7; color: #0b6b47; }
 .form-status.is-error { background: #fdecea; border-color: #f4c3bc; color: #a12a1a; }
+.form-status.is-info { background: var(--surface-alt); border-color: var(--line); color: var(--ink-500); }
 .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 
 /* ---------- Contact blocks ---------- */

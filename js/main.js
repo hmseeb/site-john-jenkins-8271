@@ -6,6 +6,7 @@
   'use strict';
 
   var BUSINESS_EMAIL = 'promerchantsavings@gmail.com';
+  var LEAD_ENDPOINT = '/api/ghl-lead';
 
   /* ---------------- Mobile navigation ---------------- */
   function initNav() {
@@ -110,12 +111,21 @@
     box.setAttribute('role', 'status');
   }
 
-  function initForm() {
-    var form = document.getElementById('quote-form');
-    if (!form) return;
+  function splitName(full) {
+    var parts = String(full || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return { first: '', last: '' };
+    if (parts.length === 1) return { first: parts[0], last: '' };
+    return { first: parts[0], last: parts.slice(1).join(' ') };
+  }
 
-    var status = document.getElementById('form-status');
+  function bindForm(form) {
+    var status = form.querySelector('.form-status') || document.getElementById('form-status');
+    var submitBtn = form.querySelector('[type="submit"]');
+    var submitLabel = submitBtn ? submitBtn.innerHTML : '';
+    var formName = form.getAttribute('data-form-name') ||
+      (document.title ? document.title.split('|')[0].trim() + ' Form' : 'Website Form');
     var fields = form.querySelectorAll('input[required], input[type="email"], input[type="tel"], select[required], textarea[required]');
+    var sending = false;
 
     for (var i = 0; i < fields.length; i++) {
       (function (field) {
@@ -126,8 +136,16 @@
       })(fields[i]);
     }
 
+    function busy(on) {
+      sending = on;
+      if (!submitBtn) return;
+      submitBtn.disabled = on;
+      submitBtn.innerHTML = on ? 'Sending&hellip;' : submitLabel;
+    }
+
     form.addEventListener('submit', function (event) {
       event.preventDefault();
+      if (sending) return;
 
       // Honeypot: silently ignore bots.
       var hp = form.querySelector('[name="company-website"]');
@@ -152,39 +170,77 @@
         var el = form.elements[n];
         return el && el.value ? String(el.value).trim() : '';
       };
+      var checked = function (n) {
+        var el = form.elements[n];
+        return !!(el && el.checked);
+      };
 
-      var lines = [
-        'New quote request from the Pro Merchant Savings website',
-        '',
-        'Name: ' + get('name'),
-        'Business: ' + (get('business') || 'Not provided'),
-        'Phone: ' + get('phone'),
-        'Email: ' + get('email'),
-        'Business type: ' + (get('industry') || 'Not provided'),
-        'Monthly card volume: ' + (get('volume') || 'Not provided'),
-        'Current processor: ' + (get('processor') || 'Not provided'),
-        'Preferred contact time: ' + (get('preferred') || 'Anytime'),
-        '',
-        'Message:',
-        get('message') || 'No additional details provided.'
-      ];
+      var fullName = get('name');
+      var parts = splitName(fullName);
 
-      var subject = 'Free Savings Analysis Request - ' + (get('business') || get('name'));
-      var mailto = 'mailto:' + BUSINESS_EMAIL +
-        '?subject=' + encodeURIComponent(subject) +
-        '&body=' + encodeURIComponent(lines.join('\n'));
+      var payload = {
+        formName: formName,
+        name: fullName,
+        firstName: parts.first,
+        lastName: parts.last,
+        phone: get('phone'),
+        email: get('email'),
+        message: get('message'),
+        business: get('business'),
+        industry: get('industry'),
+        volume: get('volume'),
+        processor: get('processor'),
+        preferred: get('preferred'),
+        consent: checked('consent'),
+        pageUrl: window.location.href
+      };
 
-      showStatus(
-        status,
-        'success',
-        '<strong>Almost done — your email is opening now.</strong><br>' +
-        'Your request has been packaged into an email to ' + BUSINESS_EMAIL + '. Press send in your mail app and we will reply within one business day. ' +
-        'Prefer to talk it through? Call <a href="tel:+16144191601">(614) 419-1601</a>.'
-      );
+      busy(true);
+      showStatus(status, 'info', 'Sending your request&hellip;');
 
-      window.location.href = mailto;
-      form.reset();
+      var request = window.fetch
+        ? window.fetch(LEAD_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function (response) {
+            if (!response.ok) throw new Error('Request failed');
+            return response;
+          })
+        : Promise.reject(new Error('fetch unavailable'));
+
+      request.then(function () {
+        busy(false);
+        showStatus(
+          status,
+          'success',
+          '<strong>Thank you &mdash; your request has been received.</strong><br>' +
+          'We have your details and a specialist will reply within one business day. ' +
+          'Need answers sooner? Call <a href="tel:+16144191601">(614) 419-1601</a>.'
+        );
+        form.reset();
+        for (var r = 0; r < fields.length; r++) setError(fields[r], '');
+      }).catch(function () {
+        busy(false);
+        showStatus(
+          status,
+          'error',
+          '<strong>Sorry &mdash; we could not send your request.</strong><br>' +
+          'Please call <a href="tel:+16144191601">(614) 419-1601</a> or email ' +
+          '<a href="mailto:' + BUSINESS_EMAIL + '">' + BUSINESS_EMAIL + '</a> and we will take your details directly.'
+        );
+      });
     });
+  }
+
+  function initForm() {
+    var forms = document.querySelectorAll('form[data-form-name], #quote-form');
+    var seen = [];
+    for (var i = 0; i < forms.length; i++) {
+      if (seen.indexOf(forms[i]) !== -1) continue;
+      seen.push(forms[i]);
+      bindForm(forms[i]);
+    }
   }
 
   /* ---------------- Reveal on scroll ---------------- */
