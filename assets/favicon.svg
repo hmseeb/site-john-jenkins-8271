@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pro Merchant Savings">
+  <defs>
+    <linearGradient id="pms-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a1f33"/>
+      <stop offset="1" stop-color="#123252"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#pms-bg)"/>
+  <rect x="12" y="19" width="40" height="26" rx="5" fill="#ffffff"/>
+  <rect x="12" y="25" width="40" height="5" fill="#12a06a"/>
+  <rect x="17" y="35" width="13" height="4" rx="2" fill="#0a1f33" opacity=".35"/>
+  <path d="M41 33v7.5m0 0-3.6-3.6M41 40.5l3.6-3.6" fill="none" stroke="#12a06a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,18 @@
+{
+  "name": "Pro Merchant Savings",
+  "short_name": "Pro Merchant",
+  "description": "Independent merchant services consulting: lower credit card processing fees, zero-fee programs, POS systems and online payments.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0a1f33",
+  "icons": [
+    {
+      "src": "./assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
