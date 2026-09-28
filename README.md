@@ -33,15 +33,15 @@ site.webmanifest robots.txt sitemap.xml
 
 ## Notes
 
-- The quote forms (homepage and contact page) are client-side validated and posted to
-  `/api/ghl-lead`, which creates or updates the contact in the GoHighLevel sub-account
-  `MD8tHnfr4XTmcDJIzqbk` with first name, last name, phone, email and the message, sets the
-  custom fields **Lead Source** = `Website` and **Website Form** = the form name, and applies
-  the tag `website-lead`. A thank-you message is shown in place after a successful submit.
-- Required environment variable on the deployment: `GHL_API_KEY` — a GoHighLevel Private
-  Integration / OAuth access token scoped to that sub-account (`GHL_ACCESS_TOKEN` and
-  `GOHIGHLEVEL_API_KEY` are accepted aliases). Optional: `GHL_LOCATION_ID` to override the
-  location, `GHL_WEBHOOK_URL` to deliver via a GoHighLevel inbound webhook instead.
+- The quote forms (homepage and contact page) are client-side validated and submitted to the
+  LeadrVision forms endpoint
+  `https://vision.leadrai.com/api/forms/602889bdf61fdf7103a2c0266ce023aa`. Each form carries a
+  `method="POST" action="…"` pair so it still works with JavaScript disabled, plus hidden
+  `_form` (form name), `_page` (set to the current URL on load) and `_gotcha` (honeypot) fields.
+  Fields use human-readable names, with `name`, `email` and `phone` kept verbatim.
+  A thank-you message is shown in place after a `{"ok": true}` fetch response, and also when a
+  plain submission returns to the page with `?submitted=1`. No server-side code or API keys
+  are required.
 - Sticky click-to-call bar on mobile; the phone number also appears in the top bar, hero, footer and CTAs.
 - Semantic HTML, skip link, ARIA labels, reduced-motion support and print styles included.
 

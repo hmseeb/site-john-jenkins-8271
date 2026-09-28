@@ -6,7 +6,7 @@
   'use strict';
 
   var BUSINESS_EMAIL = 'promerchantsavings@gmail.com';
-  var LEAD_ENDPOINT = '/api/ghl-lead';
+  var FORM_ENDPOINT = 'https://vision.leadrai.com/api/forms/602889bdf61fdf7103a2c0266ce023aa';
 
   /* ---------------- Mobile navigation ---------------- */
   function initNav() {
@@ -111,21 +111,23 @@
     box.setAttribute('role', 'status');
   }
 
-  function splitName(full) {
-    var parts = String(full || '').trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return { first: '', last: '' };
-    if (parts.length === 1) return { first: parts[0], last: '' };
-    return { first: parts[0], last: parts.slice(1).join(' ') };
-  }
+  var SUCCESS_HTML =
+    '<strong>Thanks, your message was sent &mdash; your request has been received.</strong><br>' +
+    'We have your details and a specialist will reply within one business day. ' +
+    'Need answers sooner? Call <a href="tel:+16144191601">(614) 419-1601</a>.';
 
   function bindForm(form) {
     var status = form.querySelector('.form-status') || document.getElementById('form-status');
     var submitBtn = form.querySelector('[type="submit"]');
     var submitLabel = submitBtn ? submitBtn.innerHTML : '';
-    var formName = form.getAttribute('data-form-name') ||
-      (document.title ? document.title.split('|')[0].trim() + ' Form' : 'Website Form');
+    var endpoint = form.getAttribute('action') || FORM_ENDPOINT;
     var fields = form.querySelectorAll('input[required], input[type="email"], input[type="tel"], select[required], textarea[required]');
     var sending = false;
+
+    /* Record the current page so visitors return here after submitting.
+       Plain (no-JavaScript) submissions still work without this. */
+    var pageField = form.elements['_page'];
+    if (pageField) pageField.value = window.location.href;
 
     for (var i = 0; i < fields.length; i++) {
       (function (field) {
@@ -148,7 +150,7 @@
       if (sending) return;
 
       // Honeypot: silently ignore bots.
-      var hp = form.querySelector('[name="company-website"]');
+      var hp = form.querySelector('[name="_gotcha"]');
       if (hp && hp.value) return;
 
       var valid = true;
@@ -166,59 +168,42 @@
         return;
       }
 
-      var get = function (n) {
-        var el = form.elements[n];
-        return el && el.value ? String(el.value).trim() : '';
-      };
-      var checked = function (n) {
-        var el = form.elements[n];
-        return !!(el && el.checked);
-      };
-
-      var fullName = get('name');
-      var parts = splitName(fullName);
-
-      var payload = {
-        formName: formName,
-        name: fullName,
-        firstName: parts.first,
-        lastName: parts.last,
-        phone: get('phone'),
-        email: get('email'),
-        message: get('message'),
-        business: get('business'),
-        industry: get('industry'),
-        volume: get('volume'),
-        processor: get('processor'),
-        preferred: get('preferred'),
-        consent: checked('consent'),
-        pageUrl: window.location.href
-      };
+      /* Send every named field under its own human-readable name,
+         plus the hidden _form / _page / _gotcha bookkeeping fields. */
+      var payload = {};
+      for (var e = 0; e < form.elements.length; e++) {
+        var el = form.elements[e];
+        if (!el.name || el.disabled) continue;
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          if (!el.checked) continue;
+          payload[el.name] = el.value || 'Yes';
+        } else {
+          payload[el.name] = String(el.value == null ? '' : el.value).trim();
+        }
+      }
+      payload._page = window.location.href;
 
       busy(true);
       showStatus(status, 'info', 'Sending your request&hellip;');
 
       var request = window.fetch
-        ? window.fetch(LEAD_ENDPOINT, {
+        ? window.fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           }).then(function (response) {
-            if (!response.ok) throw new Error('Request failed');
-            return response;
+            return response.json().catch(function () { return {}; }).then(function (json) {
+              if (!response.ok || json.ok === false) throw new Error('Request failed');
+              return json;
+            });
           })
         : Promise.reject(new Error('fetch unavailable'));
 
       request.then(function () {
         busy(false);
-        showStatus(
-          status,
-          'success',
-          '<strong>Thank you &mdash; your request has been received.</strong><br>' +
-          'We have your details and a specialist will reply within one business day. ' +
-          'Need answers sooner? Call <a href="tel:+16144191601">(614) 419-1601</a>.'
-        );
+        showStatus(status, 'success', SUCCESS_HTML);
         form.reset();
+        if (pageField) pageField.value = window.location.href;
         for (var r = 0; r < fields.length; r++) setError(fields[r], '');
       }).catch(function () {
         busy(false);
@@ -234,12 +219,20 @@
   }
 
   function initForm() {
-    var forms = document.querySelectorAll('form[data-form-name], #quote-form');
+    var forms = document.querySelectorAll('form[action*="/api/forms/"], #quote-form');
     var seen = [];
     for (var i = 0; i < forms.length; i++) {
       if (seen.indexOf(forms[i]) !== -1) continue;
       seen.push(forms[i]);
       bindForm(forms[i]);
+    }
+
+    /* A plain HTML submission returns here with ?submitted=1 — confirm it. */
+    if (/[?&]submitted=1(&|$)/.test(window.location.search) && seen.length) {
+      var first = seen[0];
+      var box = first.querySelector('.form-status') || document.getElementById('form-status');
+      showStatus(box, 'success', SUCCESS_HTML);
+      if (box && box.scrollIntoView) box.scrollIntoView({ block: 'center' });
     }
   }
 
