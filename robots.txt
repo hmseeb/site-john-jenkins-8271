@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: sitemap.xml
+Sitemap: https://site-john-jenkins-8271.vercel.app/sitemap.xml
