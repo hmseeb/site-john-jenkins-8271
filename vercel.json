@@ -1,4 +1,7 @@
 {
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
   "redirects": [
     {
       "source": "/admin",
@@ -9,6 +12,12 @@
       "source": "/review",
       "destination": "https://vision.leadrai.com/r/DbEhEjokV9ZMV3Hbfo03xQ7ysa92z_APUqTjplmirzE",
       "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
